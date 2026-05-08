@@ -1,3 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Performance Reporting · Sigma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f7f7f5; --bg3: #f1f0ec;
+    --text: #1a1a18; --text2: #6b6b67; --text3: #9e9e9a;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --blue: #3266ad; --blue-light: #dce9f9; --blue-dark: #0c447c;
+    --green: #3a7d44; --green-light: #eaf3de; --green-dark: #27500a;
+    --amber: #e09a1a; --amber-light: #faeeda; --amber-dark: #633806;
+    --red: #c0392b; --red-light: #fcebeb; --red-dark: #791f1f;
+    --purple-light: #eeedfe; --purple-dark: #3c3489;
+    --radius: 8px; --radius-lg: 12px;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 13px; }
+
+  /* TOPBAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 11px 20px; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 24px; height: 24px; background: var(--blue); border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .tb-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tb-sub { font-size: 11px; color: var(--text2); }
+  .tb-right { display: flex; align-items: center; gap: 6px; }
+  .pill { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--border2); color: var(--text2); cursor: pointer; background: var(--bg2); transition: all 0.15s; user-select: none; }
+  .pill:hover { background: var(--bg3); }
+  .pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .filter-chip { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); padding: 4px 10px; border: 0.5px solid var(--border); border-radius: 20px; background: var(--bg); cursor: pointer; }
+
+  /* NAV */
+  .nav { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nv { font-size: 12px; padding: 10px 14px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s; user-select: none; }
+  .nv:hover { color: var(--text); }
+  .nv.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+  /* PANES */
+  .pane { display: none; padding: 16px 20px; }
+  .pane.active { display: block; }
+
+  /* KPI ROW */
+  .krow { display: grid; gap: 8px; margin-bottom: 12px; }
+  .k7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .k4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpi { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .kl { font-size: 10px; color: var(--text2); margin-bottom: 4px; }
+  .kv { font-size: 19px; font-weight: 600; color: var(--text); line-height: 1.1; }
+  .kd { font-size: 10px; margin-top: 3px; }
+  .up { color: var(--green); }
+  .dn { color: var(--red); }
+  .nt { color: var(--text2); }
+
+  /* GRID LAYOUTS */
+  .g2 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .g22 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .g13 { display: grid; grid-template-columns: 1fr 3fr; gap: 10px; margin-bottom: 10px; }
+
+  /* CARDS */
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+  .ct { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 11px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+  .cs { font-size: 11px; color: var(--text2); font-weight: 400; }
+
+  /* BADGES */
+  .bdg { font-size: 10px; padding: 2px 8px; border-radius: 20px; display: inline-block; white-space: nowrap; }
+  .bdg-b { background: var(--blue-light); color: var(--blue-dark); }
+  .bdg-g { background: var(--green-light); color: var(--green-dark); }
+  .bdg-a { background: var(--amber-light); color: var(--amber-dark); }
+  .bdg-r { background: var(--red-light); color: var(--red-dark); }
+  .bdg-p { background: var(--purple-light); color: var(--purple-dark); }
+  .bdg-n { background: var(--bg3); color: var(--text2); }
+
+  /* SEGMENT BARS */
+  .sr { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .sl { width: 40px; font-size: 11px; color: var(--text2); flex-shrink: 0; }
+  .sbw { flex: 1; height: 7px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .sb { height: 100%; border-radius: 4px; }
+  .sv { width: 30px; text-align: right; font-size: 11px; font-weight: 600; color: var(--text); flex-shrink: 0; }
+
+  /* STAT ROWS */
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .stat-row:last-child { border-bottom: none; }
+
+  /* TABLES */
+  .mt { width: 100%; font-size: 11px; border-collapse: collapse; table-layout: fixed; }
+  .mt th { color: var(--text2); font-weight: 500; text-align: left; padding: 4px 4px 6px; border-bottom: 0.5px solid var(--border2); }
+  .mt td { padding: 6px 4px; border-bottom: 0.5px solid var(--border); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+  .mt tr:last-child td { border-bottom: none; }
+
+  /* FUNNEL */
+  .fn { display: flex; flex-direction: column; gap: 5px; }
+  .fs { display: flex; align-items: center; gap: 8px; }
+  .fsl { width: 88px; font-size: 11px; color: var(--text2); flex-shrink: 0; }
+  .fsbw { flex: 1; height: 22px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .fsb { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 10px; font-weight: 600; color: #fff; transition: width 0.3s; }
+
+  /* LEGEND */
+  .leg { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  .li { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+  .sq { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* SECTION TITLES */
+  .ms-title { font-size: 10px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 0.5px solid var(--border); }
+
+  /* PLAYER PROFILE */
+  .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--blue-light); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--blue-dark); flex-shrink: 0; }
+  .score-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+  .score-card { background: var(--bg2); border-radius: var(--radius); padding: 9px 10px; text-align: center; }
+  .score-label { font-size: 10px; color: var(--text2); margin-bottom: 3px; }
+  .score-val { font-size: 17px; font-weight: 700; }
+
+  /* SEARCH INPUT */
+  .search-input { font-size: 12px; padding: 7px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); outline: none; width: 220px; }
+  .search-input:focus { border-color: var(--blue); }
+
+  /* MODEL ACCURACY BAR */
+  .acc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .acc-label { width: 90px; font-size: 11px; color: var(--text2); }
+  .acc-bar-wrap { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .acc-bar { height: 100%; border-radius: 4px; background: var(--blue); }
+  .acc-val { width: 32px; font-size: 11px; font-weight: 600; color: var(--text); text-align: right; }
+
+  @media (max-width: 700px) {
+    .k7 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .g2, .g3, .g22 { grid-template-columns: 1fr; }
+    .score-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Σ</div>
+    <div>
+      <div class="tb-title">AI Performance Reporting</div>
+      <div class="tb-sub">CENTRALDW · BUS · refreshed 6h ago</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <span class="pill" onclick="setPeriod(this,'7d')">Last 7d</span>
+    <span class="pill active" onclick="setPeriod(this,'30d')">Last 30d</span>
+    <span class="pill" onclick="setPeriod(this,'90d')">Last 90d</span>
+    <span class="filter-chip"><i class="ti ti-filter" style="font-size:13px;"></i> Brand: All</span>
+  </div>
+</div>
+
+<div class="nav" id="nav">
+  <div class="nv active" data-tab="t1">Executive overview</div>
+  <div class="nv" data-tab="t2">Player segmentation</div>
+  <div class="nv" data-tab="t3">AI model performance</div>
+  <div class="nv" data-tab="t4">Recommendations</div>
+  <div class="nv" data-tab="t5">Risk &amp; compliance</div>
+  <div class="nv" data-tab="t6">Player drill-down</div>
+</div>
+
+<!-- ── TAB 1: EXECUTIVE OVERVIEW ── -->
+<div id="t1" class="pane active">
+  <div class="krow k7">
+    <div class="kpi"><div class="kl">Total revenue</div><div class="kv">£1.02M</div><div class="kd up">↑ +6.2% vs prev period</div></div>
+    <div class="kpi"><div class="kl">AI-influenced rev.</div><div class="kv">£683K</div><div class="kd up">↑ +9.4%</div></div>
+    <div class="kpi"><div class="kl">% AI impact</div><div class="kv">67%</div><div class="kd up">↑ +2.1pp</div></div>
+    <div class="kpi"><div class="kl">Total players</div><div class="kv">18,400</div><div class="kd up">↑ +3.8%</div></div>
+    <div class="kpi"><div class="kl">High-value players</div><div class="kv">1,240</div><div class="kd up">↑ +1.9%</div></div>
+    <div class="kpi"><div class="kl">Players at risk</div><div class="kv">820</div><div class="kd dn">↑ +0.6%</div></div>
+    <div class="kpi"><div class="kl">Revenue at risk</div><div class="kv">£68K</div><div class="kd dn">↑ +1.1%</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Revenue trend <span class="cs">Daily GGR · last 30 days</span></div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--blue);"></span>AI-influenced</span><span class="li"><span class="sq" style="background:#b4b2a9;"></span>Non-AI</span></div>
+      <div style="position:relative;height:160px;"><canvas id="c1"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">AI vs non-AI <span class="cs">Weekly split</span></div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--blue);"></span>AI £683K</span><span class="li"><span class="sq" style="background:#d3d1c7;"></span>Non-AI £337K</span></div>
+      <div style="position:relative;height:160px;"><canvas id="c2"></canvas></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ct">VIP tier distribution</div>
+      <div class="sr"><span class="sl">VIP 5</span><div class="sbw"><div class="sb" style="width:7%;background:var(--blue);"></div></div><span class="sv">7%</span></div>
+      <div class="sr"><span class="sl">VIP 4</span><div class="sbw"><div class="sb" style="width:13%;background:#5589c4;"></div></div><span class="sv">13%</span></div>
+      <div class="sr"><span class="sl">VIP 3</span><div class="sbw"><div class="sb" style="width:20%;background:#7aa3d1;"></div></div><span class="sv">20%</span></div>
+      <div class="sr"><span class="sl">VIP 2</span><div class="sbw"><div class="sb" style="width:29%;background:#a8c3e2;"></div></div><span class="sv">29%</span></div>
+      <div class="sr"><span class="sl">VIP 1</span><div class="sbw"><div class="sb" style="width:31%;background:#d3d1c7;"></div></div><span class="sv">31%</span></div>
+    </div>
+    <div class="card">
+      <div class="ct">Churn risk <span class="cs">Avg probability 32%</span></div>
+      <div style="position:relative;height:120px;"><canvas id="c3"></canvas></div>
+      <div class="leg" style="margin-top:8px;justify-content:center;">
+        <span class="li"><span class="dot" style="background:var(--green);"></span>Low 44%</span>
+        <span class="li"><span class="dot" style="background:var(--amber);"></span>Med 33%</span>
+        <span class="li"><span class="dot" style="background:var(--red);"></span>High 23%</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">AI uplift summary <span class="cs">vs pre-AI baseline</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Revenue uplift</span><span class="bdg bdg-b">+16.2%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Retention uplift</span><span class="bdg bdg-g">+9.8%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">ARPU uplift</span><span class="bdg bdg-b">+8.4%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Engagement uplift</span><span class="bdg bdg-g">+12.1%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">AI-influenced players</span><span style="font-weight:600;">67% of base</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: PLAYER SEGMENTATION ── -->
+<div id="t2" class="pane">
+  <div class="krow k4">
+    <div class="kpi"><div class="kl">Total players</div><div class="kv">18,400</div><div class="kd up">↑ +3.8%</div></div>
+    <div class="kpi"><div class="kl">Avg VIP score</div><div class="kv">2.4 / 5</div><div class="kd up">↑ +0.1</div></div>
+    <div class="kpi"><div class="kl">Avg churn prob.</div><div class="kv">32%</div><div class="kd dn">↑ +1.2pp</div></div>
+    <div class="kpi"><div class="kl">Avg 6m CLTV</div><div class="kv">£148</div><div class="kd up">↑ +4.6%</div></div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Players by VIP tier</div>
+      <div style="position:relative;height:170px;"><canvas id="c4"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Revenue by VIP tier <span class="cs">GGR this month</span></div>
+      <div style="position:relative;height:170px;"><canvas id="c5"></canvas></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ct">CLTV distribution <span class="cs">6-month predicted</span></div>
+      <div style="position:relative;height:140px;"><canvas id="c6"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Segment movement <span class="cs">VIP migrations this month</span></div>
+      <table class="mt">
+        <thead><tr><th style="width:38%;">Segment</th><th>Upgrades</th><th>Downgrades</th><th>Net</th></tr></thead>
+        <tbody>
+          <tr><td><span class="bdg bdg-b">VIP 5</span></td><td>42</td><td>18</td><td class="up">+24</td></tr>
+          <tr><td><span class="bdg bdg-p">VIP 4</span></td><td>86</td><td>34</td><td class="up">+52</td></tr>
+          <tr><td><span class="bdg bdg-g">VIP 3</span></td><td>124</td><td>67</td><td class="up">+57</td></tr>
+          <tr><td><span class="bdg bdg-n">VIP 2</span></td><td>98</td><td>112</td><td class="dn">-14</td></tr>
+          <tr><td><span class="bdg bdg-n">VIP 1</span></td><td>—</td><td>221</td><td class="dn">-221</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ct">RG risk distribution</div>
+      <table class="mt">
+        <thead><tr><th style="width:38%;">Level</th><th>Players</th><th>%</th><th>Trend</th></tr></thead>
+        <tbody>
+          <tr><td><span class="bdg bdg-g">Low</span></td><td>13,250</td><td>72%</td><td class="nt">↔ stable</td></tr>
+          <tr><td><span class="bdg bdg-a">Medium</span></td><td>4,050</td><td>22%</td><td class="dn">↑ +0.3pp</td></tr>
+          <tr><td><span class="bdg bdg-r">High</span></td><td>1,100</td><td>6%</td><td class="dn">↑ +0.2pp</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: AI MODEL PERFORMANCE ── -->
+<div id="t3" class="pane">
+  <div class="krow k4">
+    <div class="kpi"><div class="kl">VIP model accuracy</div><div class="kv">84%</div><div class="kd up">↑ +1.2pp</div></div>
+    <div class="kpi"><div class="kl">Churn AUC score</div><div class="kv">0.81</div><div class="kd up">↑ +0.02</div></div>
+    <div class="kpi"><div class="kl">CLTV MAE</div><div class="kv">£22.4</div><div class="kd up">↓ improved</div></div>
+    <div class="kpi"><div class="kl">Model version</div><div class="kv">v2.4.1</div><div class="kd nt">deployed 12d ago</div></div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ms-title">VIP model</div>
+      <div class="ct" style="font-size:11px;margin-bottom:8px;">Revenue actual vs predicted</div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--blue);"></span>Actual</span><span class="li"><span class="sq" style="background:#85b7eb;"></span>Predicted</span></div>
+      <div style="position:relative;height:130px;"><canvas id="c7"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ms-title">Churn model</div>
+      <div class="ct" style="font-size:11px;margin-bottom:8px;">Retention rate vs predicted risk</div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--green);"></span>Low</span><span class="li"><span class="sq" style="background:var(--amber);"></span>Medium</span><span class="li"><span class="sq" style="background:var(--red);"></span>High</span></div>
+      <div style="position:relative;height:130px;"><canvas id="c8"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ms-title">CLTV model</div>
+      <div class="ct" style="font-size:11px;margin-bottom:8px;">Predicted vs actual value</div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--blue);"></span>Predicted</span><span class="li"><span class="sq" style="background:#1d9e75;"></span>Actual</span></div>
+      <div style="position:relative;height:130px;"><canvas id="c9"></canvas></div>
+    </div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Model AUC over time <span class="cs">6-month history</span></div>
+      <div class="leg"><span class="li"><span class="sq" style="background:var(--blue);"></span>Churn AUC</span><span class="li"><span class="sq" style="background:#1d9e75;"></span>VIP accuracy</span></div>
+      <div style="position:relative;height:150px;"><canvas id="c10"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Model registry</div>
+      <table class="mt">
+        <thead><tr><th style="width:36%;">Model</th><th>Version</th><th>Trained</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>VIP score</td><td>v2.4.1</td><td>12d ago</td><td><span class="bdg bdg-g">Live</span></td></tr>
+          <tr><td>Churn</td><td>v3.1.0</td><td>9d ago</td><td><span class="bdg bdg-g">Live</span></td></tr>
+          <tr><td>CLTV</td><td>v1.8.2</td><td>18d ago</td><td><span class="bdg bdg-g">Live</span></td></tr>
+          <tr><td>RG risk</td><td>v2.0.4</td><td>21d ago</td><td><span class="bdg bdg-g">Live</span></td></tr>
+          <tr><td>Bonus abuse</td><td>v1.3.1</td><td>26d ago</td><td><span class="bdg bdg-a">Review</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: RECOMMENDATIONS ── -->
+<div id="t4" class="pane">
+  <div class="krow k4">
+    <div class="kpi"><div class="kl">CTR</div><div class="kv">58%</div><div class="kd up">↑ +2.4pp</div></div>
+    <div class="kpi"><div class="kl">Conversion rate</div><div class="kv">21%</div><div class="kd up">↑ +1.1pp</div></div>
+    <div class="kpi"><div class="kl">Rev. from recs.</div><div class="kv">£214K</div><div class="kd up">↑ +8.2%</div></div>
+    <div class="kpi"><div class="kl">Engagement uplift</div><div class="kv">+11.4%</div><div class="kd up">↑ +0.9pp</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Recommendation funnel <span class="cs">Last 30 days</span></div>
+      <div class="fn">
+        <div class="fs"><span class="fsl">Recommended</span><div class="fsbw"><div class="fsb" style="width:100%;background:#3266ad;">18,400</div></div></div>
+        <div class="fs"><span class="fsl">Clicked</span><div class="fsbw"><div class="fsb" style="width:58%;background:#5589c4;">10,672</div></div></div>
+        <div class="fs"><span class="fsl">Played</span><div class="fsbw"><div class="fsb" style="width:36%;background:#7aa3d1;">6,624</div></div></div>
+        <div class="fs"><span class="fsl">Converted</span><div class="fsbw"><div class="fsb" style="width:21%;background:#a8c3e2;">3,864</div></div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:16px;font-size:11px;">
+        <div><span style="color:var(--text2);">CTR</span> <strong>58%</strong></div>
+        <div><span style="color:var(--text2);">Play rate</span> <strong>36%</strong></div>
+        <div><span style="color:var(--text2);">Conversion</span> <strong>21%</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Revenue from recs. <span class="cs">Weekly</span></div>
+      <div style="position:relative;height:160px;"><canvas id="c11"></canvas></div>
+    </div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Top recommended games <span class="cs">By revenue</span></div>
+      <table class="mt">
+        <thead><tr><th style="width:46%;">Game</th><th>Revenue</th><th>CTR</th><th>Conv.</th></tr></thead>
+        <tbody>
+          <tr><td>Starburst Mega</td><td>£38K</td><td>69%</td><td>24%</td></tr>
+          <tr><td>Lightning Roulette</td><td>£32K</td><td>65%</td><td>22%</td></tr>
+          <tr><td>Book of Ra</td><td>£28K</td><td>62%</td><td>19%</td></tr>
+          <tr><td>Gonzo's Quest</td><td>£24K</td><td>59%</td><td>18%</td></tr>
+          <tr><td>Mega Moolah</td><td>£19K</td><td>54%</td><td>16%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ct">CTR by VIP tier</div>
+      <div style="position:relative;height:170px;"><canvas id="c12"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 5: RISK & COMPLIANCE ── -->
+<div id="t5" class="pane">
+  <div class="krow k4">
+    <div class="kpi"><div class="kl">High-risk players</div><div class="kv">1,100</div><div class="kd dn">↑ +38 this week</div></div>
+    <div class="kpi"><div class="kl">% high risk</div><div class="kv">6.0%</div><div class="kd dn">↑ +0.2pp</div></div>
+    <div class="kpi"><div class="kl">Revenue from high-risk</div><div class="kv">£68K</div><div class="kd dn">↑ +2.1%</div></div>
+    <div class="kpi"><div class="kl">Bonus abuse (high)</div><div class="kv">3.2%</div><div class="kd up">↓ -0.4pp improved</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">High-risk player trend <span class="cs">Last 30 days</span></div>
+      <div style="position:relative;height:155px;"><canvas id="c13"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Risk distribution <span class="cs">All players</span></div>
+      <div style="position:relative;height:120px;"><canvas id="c14"></canvas></div>
+      <div class="leg" style="margin-top:8px;justify-content:center;">
+        <span class="li"><span class="dot" style="background:var(--green);"></span>Low 72%</span>
+        <span class="li"><span class="dot" style="background:var(--amber);"></span>Med 22%</span>
+        <span class="li"><span class="dot" style="background:var(--red);"></span>High 6%</span>
+      </div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ct">Revenue by risk level</div>
+      <div style="position:relative;height:130px;"><canvas id="c15"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Bonus abuse breakdown</div>
+      <table class="mt">
+        <thead><tr><th style="width:42%;">Score band</th><th>Players</th><th>%</th><th>Rev. impact</th></tr></thead>
+        <tbody>
+          <tr><td><span class="bdg bdg-g">Low (0–30)</span></td><td>14,800</td><td>80%</td><td class="dn">-£2.1K</td></tr>
+          <tr><td><span class="bdg bdg-a">Med (31–70)</span></td><td>3,050</td><td>17%</td><td class="dn">-£8.4K</td></tr>
+          <tr><td><span class="bdg bdg-r">High (71–100)</span></td><td>590</td><td>3%</td><td class="dn">-£18.2K</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="ct">Deposit growth by risk <span class="cs">30-day change</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Low risk</span><span class="bdg bdg-g">+4.2%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Medium risk</span><span class="bdg bdg-a">+9.8%</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">High risk</span><span class="bdg bdg-r">+18.4%</span></div>
+      <div style="margin-top:10px;padding:8px;background:var(--red-light);border-radius:var(--radius);font-size:11px;color:var(--red-dark);line-height:1.5;">
+        <i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px;"></i>
+        High-risk deposit growth is 4.4× that of low-risk cohort — flagged for review.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 6: PLAYER DRILL-DOWN ── -->
+<div id="t6" class="pane">
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input class="search-input" type="text" placeholder="Search player ID or name…" />
+    <span class="bdg bdg-g" style="font-size:11px;padding:4px 10px;">Viewing: P-00842 · James H.</span>
+  </div>
+  <div class="card" style="margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border);">
+      <div class="avatar">JH</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">James H.</div>
+        <div style="font-size:11px;color:var(--text2);">ID: P-00842 · Joined Mar 2023 · Brand: Apex Gaming</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="bdg bdg-b">VIP 4</span>
+        <span class="bdg bdg-g">Low RG</span>
+        <span class="bdg bdg-a">Med churn</span>
+      </div>
+    </div>
+    <div class="score-grid">
+      <div class="score-card"><div class="score-label">VIP score</div><div class="score-val" style="color:var(--blue-dark);">4.1</div></div>
+      <div class="score-card"><div class="score-label">Churn prob.</div><div class="score-val" style="color:var(--amber);">41%</div></div>
+      <div class="score-card"><div class="score-label">6m CLTV</div><div class="score-val" style="color:var(--blue);">£312</div></div>
+      <div class="score-card"><div class="score-label">RG risk</div><div class="score-val" style="color:var(--green);">Low</div></div>
+      <div class="score-card"><div class="score-label">Bonus abuse</div><div class="score-val" style="color:var(--green);">12</div></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="ct">Wallet behaviour <span class="cs">Last 30 days</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Total deposits</span><span style="font-weight:600;">£640</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Total withdrawals</span><span style="font-weight:600;">£280</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Net cash flow</span><span style="font-weight:600;color:var(--green);">+£360</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Total wager</span><span style="font-weight:600;">£2,840</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">GGR</span><span style="font-weight:600;">£184</span></div>
+      <div class="stat-row"><span style="color:var(--text2);">Number of bets</span><span style="font-weight:600;">1,240</span></div>
+    </div>
+    <div class="card">
+      <div class="ct">Activity timeline <span class="cs">Daily wager · 30 days</span></div>
+      <div style="position:relative;height:155px;"><canvas id="c16"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Recommended games</div>
+      <table class="mt">
+        <thead><tr><th style="width:56%;">Game</th><th>Score</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Lightning Roulette</td><td>0.94</td><td><span class="bdg bdg-g">Played</span></td></tr>
+          <tr><td>Book of Ra Deluxe</td><td>0.91</td><td><span class="bdg bdg-b">Clicked</span></td></tr>
+          <tr><td>Starburst XXXtreme</td><td>0.88</td><td><span class="bdg bdg-n">Shown</span></td></tr>
+          <tr><td>Mega Moolah</td><td>0.85</td><td><span class="bdg bdg-n">Shown</span></td></tr>
+          <tr><td>Gonzo's Quest</td><td>0.82</td><td><span class="bdg bdg-g">Played</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // NAV SWITCHING
+  document.getElementById('nav').addEventListener('click', function(e) {
+    var t = e.target.closest('.nv');
+    if (!t) return;
+    document.querySelectorAll('.nv').forEach(function(n){ n.classList.remove('active'); });
+    document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+
+  // PERIOD PILLS
+  function setPeriod(el) {
+    document.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
+    el.classList.add('active');
+  }
+
+  // CHART DEFAULTS
+  var gOpts = function(yFmt, xLabels) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 9 }, color: '#888', autoSkip: true, maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { font: { size: 9 }, color: '#888', callback: yFmt || function(v){ return v; } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+      }
+    };
+  };
+
+  var d30 = Array.from({length:30}, function(_,i){ return i % 5 === 0 ? 'D'+(i+1) : ''; });
+  var months = ['Nov','Dec','Jan','Feb','Mar','Apr'];
+
+  // C1 – Revenue trend
+  new Chart(document.getElementById('c1'), {
+    type: 'line',
+    data: { labels: d30, datasets: [
+      { data: [16,17,16,18,19,18,20,21,20,22,21,23,22,24,25,23,26,27,25,28,27,29,28,30,29,31,30,32,31,27], borderColor: '#3266ad', backgroundColor: 'rgba(50,102,173,0.07)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+      { data: [9,10,9,11,10,11,10,12,11,12,11,13,12,11,13,12,13,12,13,12,13,12,14,13,12,13,12,14,13,13], borderColor: '#aaa', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, borderWidth: 1.5, borderDash: [4,3] }
+    ]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C2 – AI vs Non-AI bars
+  new Chart(document.getElementById('c2'), {
+    type: 'bar',
+    data: { labels: ['Wk 1','Wk 2','Wk 3','Wk 4'], datasets: [
+      { data: [148,162,178,192], backgroundColor: '#3266ad', label: 'AI' },
+      { data: [82,84,86,88], backgroundColor: '#d3d1c7', label: 'Non-AI' }
+    ]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C3 – Churn donut
+  new Chart(document.getElementById('c3'), {
+    type: 'doughnut',
+    data: { labels: ['Low','Medium','High'], datasets: [{ data: [44,33,23], backgroundColor: ['#3a7d44','#e09a1a','#c0392b'], borderWidth: 0 }]},
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
+  });
+
+  // C4 – Players by VIP (horizontal)
+  new Chart(document.getElementById('c4'), {
+    type: 'bar',
+    data: { labels: ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5'], datasets: [{ data: [5700,5340,3680,2390,1290], backgroundColor: ['#b5d4f4','#85b7eb','#5589c4','#3266ad','#185fa5'] }]},
+    options: Object.assign({}, gOpts(function(v){ return v.toLocaleString(); }), { indexAxis: 'y' })
+  });
+
+  // C5 – Revenue by VIP
+  new Chart(document.getElementById('c5'), {
+    type: 'bar',
+    data: { labels: ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5'], datasets: [{ data: [82,148,196,268,326], backgroundColor: ['#b5d4f4','#85b7eb','#5589c4','#3266ad','#185fa5'] }]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C6 – CLTV distribution
+  new Chart(document.getElementById('c6'), {
+    type: 'bar',
+    data: { labels: ['<£50','£50-100','£100-200','£200-500','>£500'], datasets: [{ data: [4200,5800,4900,2600,900], backgroundColor: '#3266ad' }]},
+    options: gOpts(function(v){ return v.toLocaleString(); })
+  });
+
+  // C7 – VIP actual vs predicted
+  new Chart(document.getElementById('c7'), {
+    type: 'bar',
+    data: { labels: ['VIP1','VIP2','VIP3','VIP4','VIP5'], datasets: [
+      { data: [82,148,196,268,326], backgroundColor: '#3266ad', label: 'Actual' },
+      { data: [78,152,202,274,318], backgroundColor: '#85b7eb', label: 'Predicted' }
+    ]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C8 – Churn retention vs risk
+  new Chart(document.getElementById('c8'), {
+    type: 'bar',
+    data: { labels: ['Low risk','Medium','High risk'], datasets: [{ data: [88,64,31], backgroundColor: ['#3a7d44','#e09a1a','#c0392b'] }]},
+    options: gOpts(function(v){ return v+'%'; })
+  });
+
+  // C9 – CLTV predicted vs actual
+  new Chart(document.getElementById('c9'), {
+    type: 'line',
+    data: { labels: months, datasets: [
+      { data: [128,132,138,142,146,148], borderColor: '#3266ad', pointRadius: 3, tension: 0.3, borderWidth: 2 },
+      { data: [122,129,134,138,142,146], borderColor: '#1d9e75', pointRadius: 3, tension: 0.3, borderWidth: 2, borderDash: [5,3] }
+    ]},
+    options: gOpts(function(v){ return '£'+v; })
+  });
+
+  // C10 – AUC over time
+  new Chart(document.getElementById('c10'), {
+    type: 'line',
+    data: { labels: months, datasets: [
+      { data: [0.74,0.76,0.77,0.79,0.80,0.81], borderColor: '#3266ad', pointRadius: 3, tension: 0.3, borderWidth: 2 },
+      { data: [0.79,0.80,0.81,0.82,0.83,0.84], borderColor: '#1d9e75', pointRadius: 3, tension: 0.3, borderWidth: 2, borderDash: [4,3] }
+    ]},
+    options: (function(){
+      var o = gOpts(function(v){ return v.toFixed(2); });
+      o.scales.y.min = 0.70; o.scales.y.max = 0.90;
+      return o;
+    })()
+  });
+
+  // C11 – Rec revenue weekly
+  new Chart(document.getElementById('c11'), {
+    type: 'bar',
+    data: { labels: ['Wk 1','Wk 2','Wk 3','Wk 4'], datasets: [{ data: [44,51,57,62], backgroundColor: '#3266ad' }]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C12 – CTR by VIP (horizontal)
+  new Chart(document.getElementById('c12'), {
+    type: 'bar',
+    data: { labels: ['VIP 1','VIP 2','VIP 3','VIP 4','VIP 5'], datasets: [{ data: [44,54,64,71,78], backgroundColor: ['#b5d4f4','#85b7eb','#5589c4','#3266ad','#185fa5'] }]},
+    options: (function(){
+      var o = Object.assign({}, gOpts(function(v){ return v+'%'; }), { indexAxis: 'y' });
+      o.scales.x = { ticks: { font: { size: 9 }, color: '#888', callback: function(v){ return v+'%'; } }, max: 100, grid: { color: 'rgba(0,0,0,0.04)' } };
+      return o;
+    })()
+  });
+
+  // C13 – High-risk trend
+  var hrData = Array.from({length:30}, function(_,i){ return Math.round(960 + i * 4.5 + (Math.sin(i) * 12)); });
+  new Chart(document.getElementById('c13'), {
+    type: 'line',
+    data: { labels: d30, datasets: [{ data: hrData, borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,0.07)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 }]},
+    options: gOpts(function(v){ return Math.round(v).toLocaleString(); })
+  });
+
+  // C14 – Risk donut
+  new Chart(document.getElementById('c14'), {
+    type: 'doughnut',
+    data: { labels: ['Low','Medium','High'], datasets: [{ data: [72,22,6], backgroundColor: ['#3a7d44','#e09a1a','#c0392b'], borderWidth: 0 }]},
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false } } }
+  });
+
+  // C15 – Revenue by risk
+  new Chart(document.getElementById('c15'), {
+    type: 'bar',
+    data: { labels: ['Low','Medium','High'], datasets: [{ data: [682,270,68], backgroundColor: ['#3a7d44','#e09a1a','#c0392b'] }]},
+    options: gOpts(function(v){ return '£'+v+'K'; })
+  });
+
+  // C16 – Player activity
+  var wagerD = Array.from({length:30}, function(_,i){ return Math.round(60 + Math.sin(i/2.5)*28 + Math.random()*20); });
+  new Chart(document.getElementById('c16'), {
+    type: 'bar',
+    data: { labels: d30, datasets: [{ data: wagerD, backgroundColor: '#3266ad' }]},
+    options: gOpts(function(v){ return '£'+v; })
+  });
+</script>
+</body>
+</html>
 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
