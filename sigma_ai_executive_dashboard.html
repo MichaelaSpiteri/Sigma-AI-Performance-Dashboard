@@ -1,0 +1,310 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .db { padding: 0; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 22px; height: 22px; background: #3266ad; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .logo span { color: #fff; font-size: 11px; font-weight: 500; }
+  .topbar-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .topbar-sub { font-size: 12px; color: var(--color-text-secondary); }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); cursor: pointer; background: var(--color-background-secondary); }
+  .pill.active { background: #3266ad; color: #fff; border-color: #3266ad; }
+  .nav { display: flex; gap: 0; border-bottom: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); padding: 0 20px; }
+  .nav-item { font-size: 12px; padding: 10px 14px; color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .nav-item.active { color: #3266ad; border-bottom-color: #3266ad; font-weight: 500; }
+  .content { padding: 16px 20px; background: var(--color-background-tertiary); min-height: 600px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .kpi { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .kpi-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .kpi-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+  .kpi-delta { font-size: 11px; margin-top: 2px; }
+  .up { color: #3a7d44; } .down { color: #c0392b; }
+  .row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title-sub { font-size: 11px; color: var(--color-text-secondary); font-weight: 400; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; }
+  .badge-blue { background: #dce9f9; color: #0c447c; }
+  .badge-green { background: #eaf3de; color: #27500a; }
+  .badge-amber { background: #faeeda; color: #633806; }
+  .badge-red { background: #fcebeb; color: #791f1f; }
+  .seg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 12px; }
+  .seg-label { width: 80px; color: var(--color-text-secondary); flex-shrink: 0; }
+  .seg-bar-wrap { flex: 1; height: 8px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .seg-bar { height: 100%; border-radius: 4px; }
+  .seg-val { width: 36px; text-align: right; color: var(--color-text-primary); font-weight: 500; flex-shrink: 0; }
+  .mini-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .mini-table th { color: var(--color-text-secondary); font-weight: 400; text-align: left; padding: 4px 0; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .mini-table td { padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+  .mini-table tr:last-child td { border-bottom: none; }
+  .funnel-row { display: flex; flex-direction: column; gap: 6px; }
+  .funnel-step { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .funnel-step-label { width: 90px; color: var(--color-text-secondary); flex-shrink: 0; }
+  .funnel-step-bar-wrap { flex: 1; height: 22px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .funnel-step-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 500; color: #fff; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--color-text-secondary); }
+</style>
+
+<div class="db">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo"><span>Σ</span></div>
+      <div>
+        <div class="topbar-title">AI Performance Reporting</div>
+        <div class="topbar-sub">CENTRALDW · BUS · refreshed 2h ago</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill">Last 7d</span>
+      <span class="pill active">Last 30d</span>
+      <span class="pill">Last 90d</span>
+      <span style="margin-left:4px; font-size:12px; color:var(--color-text-secondary); display:flex; align-items:center; gap:4px;"><i class="ti ti-filter" style="font-size:14px;" aria-hidden="true"></i> Brand: All</span>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-item active">Executive overview</div>
+    <div class="nav-item">Player segmentation</div>
+    <div class="nav-item">AI model performance</div>
+    <div class="nav-item">Recommendations</div>
+    <div class="nav-item">Risk &amp; compliance</div>
+    <div class="nav-item">Player drill-down</div>
+  </div>
+
+  <div class="content">
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Total revenue</div>
+        <div class="kpi-val">£4.2M</div>
+        <div class="kpi-delta up"><i class="ti ti-arrow-up-right" style="font-size:11px;" aria-hidden="true"></i> +8.4%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">AI-influenced rev.</div>
+        <div class="kpi-val">£2.9M</div>
+        <div class="kpi-delta up"><i class="ti ti-arrow-up-right" style="font-size:11px;" aria-hidden="true"></i> +12.1%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">% AI impact</div>
+        <div class="kpi-val">68%</div>
+        <div class="kpi-delta up"><i class="ti ti-arrow-up-right" style="font-size:11px;" aria-hidden="true"></i> +3.2pp</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total players</div>
+        <div class="kpi-val">84.6K</div>
+        <div class="kpi-delta up"><i class="ti ti-arrow-up-right" style="font-size:11px;" aria-hidden="true"></i> +5.1%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">High-value players</div>
+        <div class="kpi-val">6,210</div>
+        <div class="kpi-delta up"><i class="ti ti-arrow-up-right" style="font-size:11px;" aria-hidden="true"></i> +2.3%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Players at risk</div>
+        <div class="kpi-val">3,840</div>
+        <div class="kpi-delta down"><i class="ti ti-arrow-down-right" style="font-size:11px;" aria-hidden="true"></i> +0.8%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Revenue at risk</div>
+        <div class="kpi-val">£310K</div>
+        <div class="kpi-delta down"><i class="ti ti-arrow-down-right" style="font-size:11px;" aria-hidden="true"></i> +1.4%</div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="card">
+        <div class="card-title">Revenue trend <span class="card-title-sub">Daily GGR · last 30 days</span></div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot" style="background:#3266ad;"></span> AI-influenced</span>
+          <span class="legend-item"><span class="dot" style="background:#d3d1c7;"></span> Non-AI</span>
+        </div>
+        <div style="position:relative; height:160px;">
+          <canvas id="revChart" role="img" aria-label="Line chart of AI-influenced vs non-AI daily revenue over 30 days. AI revenue trends upward, non-AI remains relatively flat.">AI-influenced revenue trends upward from ~£70K to ~£110K. Non-AI revenue fluctuates between £40K and £55K.</canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">AI vs non-AI <span class="card-title-sub">Revenue split by week</span></div>
+        <div class="legend">
+          <span class="legend-item"><span class="dot" style="background:#3266ad;"></span> AI £2.9M</span>
+          <span class="legend-item"><span class="dot" style="background:#aaa;"></span> Non-AI £1.3M</span>
+        </div>
+        <div style="position:relative; height:160px;">
+          <canvas id="barChart" role="img" aria-label="Grouped bar chart comparing AI vs non-AI weekly revenue over 4 weeks. AI revenue consistently higher.">Week 1: AI £620K Non-AI £320K. Week 2: AI £700K Non-AI £310K. Week 3: AI £740K Non-AI £340K. Week 4: AI £840K Non-AI £330K.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <div class="card-title">Player segmentation <span class="card-title-sub">By VIP tier</span></div>
+        <div style="margin-bottom:10px;">
+          <div class="seg-row"><span class="seg-label">VIP 5</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:8%; background:#3266ad;"></div></div><span class="seg-val">8%</span></div>
+          <div class="seg-row"><span class="seg-label">VIP 4</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:14%; background:#3266ad; opacity:0.8;"></div></div><span class="seg-val">14%</span></div>
+          <div class="seg-row"><span class="seg-label">VIP 3</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:21%; background:#3266ad; opacity:0.6;"></div></div><span class="seg-val">21%</span></div>
+          <div class="seg-row"><span class="seg-label">VIP 2</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:28%; background:#3266ad; opacity:0.4;"></div></div><span class="seg-val">28%</span></div>
+          <div class="seg-row"><span class="seg-label">VIP 1</span><div class="seg-bar-wrap"><div class="seg-bar" style="width:29%; background:#d3d1c7;"></div></div><span class="seg-val">29%</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Churn risk <span class="card-title-sub">Avg probability 34%</span></div>
+        <div style="position:relative; height:130px;">
+          <canvas id="churnChart" role="img" aria-label="Donut chart showing churn risk distribution. Low 41%, Medium 34%, High 25%.">Churn distribution: Low 41%, Medium 34%, High 25%.</canvas>
+        </div>
+        <div class="legend" style="margin-top:8px; justify-content: center;">
+          <span class="legend-item"><span class="dot" style="background:#3a7d44;"></span> Low 41%</span>
+          <span class="legend-item"><span class="dot" style="background:#e09a1a;"></span> Med 34%</span>
+          <span class="legend-item"><span class="dot" style="background:#c0392b;"></span> High 25%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">RG risk distribution <span class="card-title-sub">This month</span></div>
+        <table class="mini-table">
+          <thead><tr><th>Level</th><th>Players</th><th>% total</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-green">Low</span></td><td>61,200</td><td>72%</td><td class="up">↔</td></tr>
+            <tr><td><span class="badge badge-amber">Medium</span></td><td>18,600</td><td>22%</td><td class="down">↑ 0.4pp</td></tr>
+            <tr><td><span class="badge badge-red">High</span></td><td>4,800</td><td>6%</td><td class="down">↑ 0.3pp</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <div class="card-title">Recommendation funnel <span class="card-title-sub">Last 30d</span></div>
+        <div class="funnel-row">
+          <div class="funnel-step">
+            <span class="funnel-step-label">Recommended</span>
+            <div class="funnel-step-bar-wrap"><div class="funnel-step-bar" style="width:100%; background:#3266ad;">84,600</div></div>
+          </div>
+          <div class="funnel-step">
+            <span class="funnel-step-label">Clicked</span>
+            <div class="funnel-step-bar-wrap"><div class="funnel-step-bar" style="width:62%; background:#5589c4;">52,400</div></div>
+          </div>
+          <div class="funnel-step">
+            <span class="funnel-step-label">Played</span>
+            <div class="funnel-step-bar-wrap"><div class="funnel-step-bar" style="width:38%; background:#85abda;">32,100</div></div>
+          </div>
+          <div class="funnel-step">
+            <span class="funnel-step-label">Converted</span>
+            <div class="funnel-step-bar-wrap"><div class="funnel-step-bar" style="width:22%; background:#aec6e8;">18,600</div></div>
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:16px; font-size:12px;">
+          <div><span style="color:var(--color-text-secondary);">CTR</span> <strong>62%</strong></div>
+          <div><span style="color:var(--color-text-secondary);">Conv.</span> <strong>22%</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Top recommended games <span class="card-title-sub">by revenue</span></div>
+        <table class="mini-table">
+          <thead><tr><th>Game</th><th>Rev.</th><th>CTR</th></tr></thead>
+          <tbody>
+            <tr><td>Starburst Mega</td><td>£184K</td><td>71%</td></tr>
+            <tr><td>Lightning Roulette</td><td>£162K</td><td>68%</td></tr>
+            <tr><td>Book of Ra</td><td>£139K</td><td>64%</td></tr>
+            <tr><td>Gonzo's Quest</td><td>£121K</td><td>60%</td></tr>
+            <tr><td>Mega Moolah</td><td>£98K</td><td>57%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">AI uplift summary <span class="card-title-sub">vs pre-AI baseline</span></div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <span style="color:var(--color-text-secondary);">Revenue uplift</span>
+            <span class="badge badge-blue">+18.4%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <span style="color:var(--color-text-secondary);">Retention uplift</span>
+            <span class="badge badge-green">+11.2%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <span style="color:var(--color-text-secondary);">ARPU uplift</span>
+            <span class="badge badge-blue">+9.7%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <span style="color:var(--color-text-secondary);">Engagement uplift</span>
+            <span class="badge badge-green">+14.3%</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <span style="color:var(--color-text-secondary);">AI-influenced players</span>
+            <span style="font-weight:500;">68% of base</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const days = Array.from({length: 30}, (_, i) => {
+  const d = new Date(2026, 3, 8 + i);
+  return (i % 5 === 0) ? d.toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : '';
+});
+const ai = [72,75,74,78,80,79,83,85,82,88,86,90,89,94,96,92,98,100,97,103,105,102,108,110,107,112,109,114,116,118];
+const nonAi = [42,44,41,45,43,47,46,44,48,45,50,47,49,46,51,48,52,49,50,53,47,51,48,54,50,52,49,55,51,53];
+
+new Chart(document.getElementById('revChart'), {
+  type: 'line',
+  data: {
+    labels: days,
+    datasets: [
+      { label: 'AI-influenced', data: ai, borderColor: '#3266ad', backgroundColor: 'rgba(50,102,173,0.08)', fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+      { label: 'Non-AI', data: nonAi, borderColor: '#aaa', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, borderWidth: 1.5, borderDash: [4,3] }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: '#888', autoSkip: false, maxRotation: 0 }, grid: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: '#888', callback: v => '£' + v + 'K' }, grid: { color: 'rgba(0,0,0,0.04)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('barChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4'],
+    datasets: [
+      { label: 'AI', data: [620, 700, 740, 840], backgroundColor: '#3266ad' },
+      { label: 'Non-AI', data: [320, 310, 340, 330], backgroundColor: '#d3d1c7' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: '#888' }, grid: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: '#888', callback: v => '£' + v + 'K' }, grid: { color: 'rgba(0,0,0,0.04)' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('churnChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Low', 'Medium', 'High'],
+    datasets: [{ data: [41, 34, 25], backgroundColor: ['#3a7d44', '#e09a1a', '#c0392b'], borderWidth: 0 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
